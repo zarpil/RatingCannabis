@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  trichai-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Se pasa la API key durante el proceso de build para que Vite la incorpore
+        - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
+    container_name: trichai-web
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    env_file:
+      - .env
