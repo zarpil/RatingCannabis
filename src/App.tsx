@@ -392,9 +392,33 @@ export default function App() {
               <div className="relative w-full max-w-md rounded-3xl overflow-hidden glass-panel p-2 mb-8">
                 <img src={image} alt="Preview" className="w-full h-auto rounded-2xl object-cover aspect-square" />
                 {isAnalyzing && (
-                  <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center backdrop-blur-sm rounded-2xl m-2">
-                    <RefreshCw className="w-12 h-12 text-neon-green animate-spin mb-4" />
-                    <p className="text-lg font-medium text-neon-green animate-pulse">Analizando tricomas...</p>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl m-2 overflow-hidden">
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] z-10" />
+                    
+                    {/* Laser Scan Line */}
+                    <motion.div
+                      initial={{ top: '-10%' }}
+                      animate={{ top: '110%' }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "linear"
+                      }}
+                      className="absolute left-0 w-full h-1 bg-neon-green shadow-[0_0_20px_#39FF14,0_0_40px_#39FF14] z-20"
+                    />
+                    
+                    <div className="relative z-30 flex flex-col items-center">
+                      <div className="relative mb-4">
+                        <RefreshCw className="w-12 h-12 text-neon-green animate-spin" />
+                        <motion.div 
+                          animate={{ opacity: [0.3, 1, 0.3] }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                          className="absolute inset-0 bg-neon-green/20 blur-xl rounded-full"
+                        />
+                      </div>
+                      <p className="text-lg font-bold text-neon-green tracking-widest uppercase animate-pulse">Escaneando Muestra</p>
+                      <p className="text-xs text-gray-400 mt-1 uppercase tracking-tighter text-center px-4">Detectando tricomas y perfil de terpenos...</p>
+                    </div>
                   </div>
                 )}
               </div>
