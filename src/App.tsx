@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Camera, AlertCircle, Leaf, CheckCircle2, Star, RefreshCw, Share2, Download, ChevronDown } from 'lucide-react';
+import { Upload, Camera, AlertCircle, Leaf, CheckCircle2, Star, RefreshCw, Share2, Download, ChevronDown, History } from 'lucide-react';
 import { GoogleGenAI, Type } from '@google/genai';
 import { toPng } from 'html-to-image';
 
@@ -19,6 +19,13 @@ type AnalysisResult = {
   interpretation: string;
 } | null;
 
+type HistoryItem = {
+  id: string;
+  date: string;
+  thumbnail: string;
+  result: Exclude<AnalysisResult, null>;
+};
+
 export default function App() {
   const [image, setImage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -31,6 +38,51 @@ export default function App() {
   const [isSharing, setIsSharing] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+
+  const [history, setHistory] = useState<HistoryItem[]>(() => {
+    const saved = localStorage.getItem('trichai_history');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const addToHistory = async (res: Exclude<AnalysisResult, null>, imgDataUrl: string) => {
+    try {
+      const imgEl = new Image();
+      imgEl.src = imgDataUrl;
+      await new Promise(r => { imgEl.onload = r; });
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const size = 150;
+      canvas.width = size;
+      canvas.height = size;
+      const minDim = Math.min(imgEl.width, imgEl.height);
+      const sx = (imgEl.width - minDim) / 2;
+      const sy = (imgEl.height - minDim) / 2;
+      ctx?.drawImage(imgEl, sx, sy, minDim, minDim, 0, 0, size, size);
+      const thumbnail = canvas.toDataURL('image/jpeg', 0.5);
+
+      const newItem: HistoryItem = {
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        thumbnail,
+        result: res
+      };
+
+      setHistory(prev => {
+        const newHistory = [newItem, ...prev].slice(0, 12);
+        localStorage.setItem('trichai_history', JSON.stringify(newHistory));
+        return newHistory;
+      });
+    } catch (e) {
+      console.error("No se pudo guardar el historial", e);
+    }
+  };
+
+  const loadHistoryItem = (item: HistoryItem) => {
+    setImage(item.thumbnail);
+    setResult(item.result);
+    setError(null);
+    setShowDetails(false);
+  };
 
   const generatePreview = async () => {
     if (!posterRef.current) return;
@@ -201,7 +253,7 @@ export default function App() {
       if (!data.isCannabis) {
         setError('Parece ser que nuestro sistema no detecta bien la imagen. Por favor, sube una foto clara de una flor o extracción.');
       } else {
-        setResult({
+        const resObj = {
           type: data.type || 'Flor',
           predominance: data.predominance || 'Desconocida',
           thc: data.thc || 15,
@@ -214,7 +266,9 @@ export default function App() {
             curing: data.traits?.curing || 'Óptima · brillo 40%',
           },
           interpretation: data.interpretation || 'La muestra presenta características estándar sin rasgos destacables a simple vista.',
-        });
+        };
+        setResult(resObj);
+        addToHistory(resObj, image);
       }
     } catch (err: any) {
       console.error(err);
@@ -294,6 +348,35 @@ export default function App() {
                     onChange={handleFileChange}
                   />
                 </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* History Section */}
+          {!image && !isAnalyzing && history.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="w-full max-w-3xl mt-8"
+            >
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-300">
+                <History className="w-5 h-5" /> Análisis Recientes
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {history.map(item => (
+                  <div
+                    key={item.id}
+                    onClick={() => loadHistoryItem(item)}
+                    className="glass-panel p-4 rounded-2xl flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-colors border border-white/5 hover:border-neon-green/30 group"
+                  >
+                    <img src={item.thumbnail} alt={item.result.type} className="w-14 h-14 rounded-xl object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                    <div>
+                      <p className="font-bold text-sm text-white truncate">{item.result.type}</p>
+                      <p className="text-xs text-gray-400">{new Date(item.date).toLocaleDateString()}</p>
+                      <p className="text-neon-green text-xs font-bold mt-0.5">THC {item.result.thc}%</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </motion.div>
           )}
