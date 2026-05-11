@@ -26,12 +26,94 @@ type HistoryItem = {
   result: Exclude<AnalysisResult, null>;
 };
 
+const translations = {
+  es: {
+    hero_title: "Analizador Inteligente de Derivados del Cannabis",
+    hero_subtitle: "Sube una imagen de tu flor o extracción y deja que nuestra IA analice la pureza, el tipo de producto y estime los niveles de cannabinoides.",
+    drop_title: "Arrastra y suelta tu imagen aquí",
+    drop_subtitle: "Soporta JPG, PNG, WEBP",
+    browse_files: "Examinar archivos",
+    use_camera: "Usar Cámara",
+    recent_analysis: "Análisis Recientes",
+    cancel: "Cancelar",
+    analyze_sample: "Analizar Muestra",
+    scanning_sample: "ESCANEANDO MUESTRA",
+    scanning_subtitle: "Detectando tricomas y perfil de terpenos...",
+    analysis_completed: "Análisis Completado",
+    thc_estimated: "THC Estimado",
+    cbd_estimated: "CBD Estimado",
+    terpenes_estimated: "Perfil de Terpenos",
+    visual_quality: "Calidad Visual",
+    show_details: "Ver análisis completo",
+    hide_details: "Ocultar detalles",
+    detected_traits: "Rasgos Detectados",
+    trichomes: "Tricomas",
+    texture: "Textura",
+    curing: "Curación",
+    interpretation: "Interpretación",
+    share: "Compartir",
+    download: "Descargar",
+    new_sample: "Nueva Muestra",
+    poster_title: "Tu Póster de Análisis",
+    error_format: "Formato no válido. Sube JPG, PNG o WEBP.",
+    error_api_key: "Falta la API Key de Gemini. Por favor, añádela en el archivo .env de la raíz del proyecto.",
+    error_cannabis: "Parece ser que nuestro sistema no detecta bien la imagen. Por favor, sube una foto clara de una flor o extracción.",
+    disclaimer: "Disclaimer: Este análisis es puramente informativo y basado en inteligencia visual; no sustituye un análisis de laboratorio profesional. Las estimaciones mostradas pueden variar significativamente de los valores reales.",
+    ai_prompt: "Eres un experto catador y botánico especializado en cannabis. Analiza la imagen minuciosamente. Si no es cannabis o un extracto derivado, pon isCannabis en false. Si lo es, ponlo en true y devuelve estimaciones realistas basadas en el aspecto, los tricomas, el color y la textura. RESPONDE TODO EN ESPAÑOL."
+  },
+  en: {
+    hero_title: "Intelligent Cannabis Derivative Analyzer",
+    hero_subtitle: "Upload an image of your flower or extraction and let our AI analyze purity, product type, and estimate cannabinoid levels.",
+    drop_title: "Drag and drop your image here",
+    drop_subtitle: "Supports JPG, PNG, WEBP",
+    browse_files: "Browse files",
+    use_camera: "Use Camera",
+    recent_analysis: "Recent Analysis",
+    cancel: "Cancel",
+    analyze_sample: "Analyze Sample",
+    scanning_sample: "SCANNING SAMPLE",
+    scanning_subtitle: "Detecting trichomes and terpene profile...",
+    analysis_completed: "Analysis Completed",
+    thc_estimated: "Estimated THC",
+    cbd_estimated: "Estimated CBD",
+    terpenes_estimated: "Terpene Profile",
+    visual_quality: "Visual Quality",
+    show_details: "View full analysis",
+    hide_details: "Hide details",
+    detected_traits: "Detected Traits",
+    trichomes: "Trichomes",
+    texture: "Texture",
+    curing: "Curing",
+    interpretation: "Interpretation",
+    share: "Share",
+    download: "Download",
+    new_sample: "New Sample",
+    poster_title: "Your Analysis Poster",
+    error_format: "Invalid format. Upload JPG, PNG or WEBP.",
+    error_api_key: "Gemini API Key missing. Please add it to the .env file in the project root.",
+    error_cannabis: "It seems our system doesn't detect the image well. Please upload a clear photo of a flower or extraction.",
+    disclaimer: "Disclaimer: This analysis is purely informative and based on visual intelligence; it does not replace a professional laboratory analysis. Shown estimates may vary significantly from actual values.",
+    ai_prompt: "You are an expert taster and botanist specializing in cannabis. Analyze the image thoroughly. If it's not cannabis or a derivative extract, set isCannabis to false. If it is, set it to true and return realistic estimates based on appearance, trichomes, color, and texture. RESPOND EVERYTHING IN ENGLISH."
+  }
+};
+
 export default function App() {
   const [image, setImage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult>(null);
+  const [lang, setLang] = useState<'es' | 'en'>(() => {
+    const saved = localStorage.getItem('trichai_lang');
+    return (saved as 'es' | 'en') || 'es';
+  });
+
+  const t = (key: keyof typeof translations.es) => translations[lang][key];
+
+  const changeLang = (l: 'es' | 'en') => {
+    setLang(l);
+    localStorage.setItem('trichai_lang', l);
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const posterRef = useRef<HTMLDivElement>(null);
@@ -106,8 +188,8 @@ export default function App() {
       const blob = await (await fetch(generatedImage)).blob();
       const file = new File([blob], 'trichai_analysis.png', { type: 'image/png' });
       await navigator.share({
-        title: 'Mi análisis en TrichAi 🌱',
-        text: 'Mira los resultados de mi análisis en TrichAi.',
+        title: lang === 'es' ? 'Mi análisis en TrichAi 🌱' : 'My TrichAi Analysis 🌱',
+        text: lang === 'es' ? 'Mira los resultados de mi análisis en TrichAi.' : 'Check out my analysis results on TrichAi.',
         files: [file],
       });
     } catch (e) {
@@ -154,7 +236,7 @@ export default function App() {
 
     const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type)) {
-      setError('Formato no válido. Sube JPG, PNG o WEBP.');
+      setError(t('error_format'));
       return;
     }
 
@@ -174,7 +256,7 @@ export default function App() {
 
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     if (!apiKey || apiKey === 'pon_aqui_tu_api_key_de_gemini') {
-      setError('Falta la API Key de Gemini. Por favor, añádela en el archivo .env de la raíz del proyecto.');
+      setError(t('error_api_key'));
       setIsAnalyzing(false);
       return;
     }
@@ -236,7 +318,7 @@ export default function App() {
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: [
-          "Eres un experto catador y botánico especializado en cannabis. Analiza la imagen minuciosamente. Si no es cannabis o un extracto derivado, pon isCannabis en false. Si lo es, ponlo en true y devuelve estimaciones realistas basadas en el aspecto, los tricomas, el color y la textura.",
+          t('ai_prompt'),
           { inlineData: { data: base64Data, mimeType } }
         ],
         config: {
@@ -251,7 +333,7 @@ export default function App() {
       const data = JSON.parse(textResponse);
 
       if (!data.isCannabis) {
-        setError('Parece ser que nuestro sistema no detecta bien la imagen. Por favor, sube una foto clara de una flor o extracción.');
+        setError(t('error_cannabis'));
       } else {
         const resObj = {
           type: data.type || 'Flor',
@@ -292,6 +374,21 @@ export default function App() {
           <Leaf className="w-8 h-8 text-neon-green" />
           <h1 className="text-2xl font-bold tracking-tight">Trich<span className="text-neon-green">Ai</span></h1>
         </div>
+
+        <div className="flex bg-white/5 p-1 rounded-full border border-white/10">
+          <button 
+            onClick={() => changeLang('es')}
+            className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${lang === 'es' ? 'bg-neon-green text-black' : 'text-gray-400 hover:text-white'}`}
+          >
+            ES
+          </button>
+          <button 
+            onClick={() => changeLang('en')}
+            className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${lang === 'en' ? 'bg-neon-green text-black' : 'text-gray-400 hover:text-white'}`}
+          >
+            EN
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}
@@ -306,10 +403,10 @@ export default function App() {
               className="text-center w-full"
             >
               <h2 className="text-4xl md:text-6xl font-extrabold mb-6 bg-gradient-to-r from-neon-green to-emerald bg-clip-text text-transparent">
-                Analizador Inteligente de Derivados del Cannabis
+                {t('hero_title')}
               </h2>
               <p className="text-gray-400 text-lg mb-12 max-w-2xl mx-auto">
-                Sube una imagen de tu flor o extracción y deja que nuestra IA analice la pureza, el tipo de producto y estime los niveles de cannabinoides.
+                {t('hero_subtitle')}
               </p>
 
               <div
@@ -322,22 +419,22 @@ export default function App() {
                   <div className="p-4 bg-white/5 rounded-full backdrop-blur-sm">
                     <Upload className="w-10 h-10 text-neon-green" />
                   </div>
-                  <h3 className="text-xl font-semibold">Arrastra y suelta tu imagen aquí</h3>
-                  <p className="text-sm text-gray-500">Soporta JPG, PNG, WEBP</p>
+                  <h3 className="text-xl font-semibold">{t('drop_title')}</h3>
+                  <p className="text-sm text-gray-500">{t('drop_subtitle')}</p>
 
                   <div className="flex items-center gap-4 mt-6">
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-full font-medium transition-colors flex items-center gap-2"
                     >
-                      Examinar archivos
+                      {t('browse_files')}
                     </button>
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       className="px-6 py-3 bg-neon-green text-black hover:bg-emerald rounded-full font-bold transition-colors flex items-center gap-2 shadow-[0_0_20px_rgba(57,255,20,0.3)] hover:shadow-[0_0_30px_rgba(57,255,20,0.5)]"
                     >
                       <Camera className="w-5 h-5" />
-                      Usar Cámara
+                      {t('use_camera')}
                     </button>
                   </div>
                   <input
@@ -360,7 +457,7 @@ export default function App() {
               className="w-full max-w-3xl mt-8"
             >
               <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-300">
-                <History className="w-5 h-5" /> Análisis Recientes
+                <History className="w-5 h-5" /> {t('recent_analysis')}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {history.map(item => (
@@ -416,8 +513,8 @@ export default function App() {
                           className="absolute inset-0 bg-neon-green/20 blur-xl rounded-full"
                         />
                       </div>
-                      <p className="text-lg font-bold text-neon-green tracking-widest uppercase animate-pulse">Escaneando Muestra</p>
-                      <p className="text-xs text-gray-400 mt-1 uppercase tracking-tighter text-center px-4">Detectando tricomas y perfil de terpenos...</p>
+                      <p className="text-lg font-bold text-neon-green tracking-widest uppercase animate-pulse">{t('scanning_sample')}</p>
+                      <p className="text-xs text-gray-400 mt-1 uppercase tracking-tighter text-center px-4">{t('scanning_subtitle')}</p>
                     </div>
                   </div>
                 )}
@@ -429,13 +526,13 @@ export default function App() {
                     onClick={() => setImage(null)}
                     className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-full font-medium transition-colors"
                   >
-                    Cancelar
+                    {t('cancel')}
                   </button>
                   <button
                     onClick={analyzeImage}
                     className="px-8 py-3 bg-neon-green text-black hover:bg-emerald rounded-full font-bold transition-all shadow-[0_0_20px_rgba(57,255,20,0.3)] hover:shadow-[0_0_30px_rgba(57,255,20,0.5)] text-lg"
                   >
-                    Analizar Muestra
+                    {t('analyze_sample')}
                   </button>
                 </div>
               )}
@@ -474,7 +571,7 @@ export default function App() {
                         className="w-full px-6 py-3 bg-neon-green text-black hover:bg-emerald rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(57,255,20,0.2)] flex items-center justify-center gap-2"
                       >
                         {isSharing ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Share2 className="w-5 h-5" />}
-                        {isSharing ? 'Generando...' : 'Compartir'}
+                        {isSharing ? (lang === 'es' ? 'Generando...' : 'Generating...') : t('share')}
                       </button>
 
                       <button
@@ -482,7 +579,7 @@ export default function App() {
                         className="w-full px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
                       >
                         <RefreshCw className="w-4 h-4" />
-                        Nueva Muestra
+                        {t('new_sample')}
                       </button>
                     </div>
                   </div>
@@ -490,7 +587,7 @@ export default function App() {
                   <div className="w-full md:w-2/3 flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-2 text-neon-green">
                       <CheckCircle2 className="w-5 h-5" />
-                      <span className="font-semibold uppercase tracking-wider text-sm">Análisis Completado</span>
+                      <span className="font-semibold uppercase tracking-wider text-sm">{t('analysis_completed')}</span>
                     </div>
 
                     <h3 className="text-3xl font-bold mb-4">{result.type} <span className="text-gray-500 font-light">| {result.predominance}</span></h3>
@@ -521,7 +618,7 @@ export default function App() {
                           />
                         ))}
                       </div>
-                      <span className="text-sm text-gray-500">Calidad Visual</span>
+                      <span className="text-sm text-gray-500">{t('visual_quality')}</span>
                     </div>
 
                     {/* Expand Button */}
@@ -529,7 +626,7 @@ export default function App() {
                       onClick={() => setShowDetails(!showDetails)}
                       className="flex items-center gap-2 text-neon-green/80 hover:text-neon-green transition-colors text-sm font-medium mt-2 group"
                     >
-                      <span>{showDetails ? 'Ocultar detalles' : 'Ver análisis completo'}</span>
+                      <span>{showDetails ? t('hide_details') : t('show_details')}</span>
                       <motion.div animate={{ rotate: showDetails ? 180 : 0 }} transition={{ duration: 0.3 }}>
                         <ChevronDown className="w-4 h-4" />
                       </motion.div>
@@ -552,7 +649,7 @@ export default function App() {
                         <div className="space-y-5">
                           <div>
                             <div className="flex justify-between mb-2">
-                              <span className="font-medium text-gray-300">THC Estimado</span>
+                              <span className="font-medium text-gray-300">{t('thc_estimated')}</span>
                               <span className="font-bold text-neon-green">{result.thc}%</span>
                             </div>
                             <div className="w-full bg-gray-800 rounded-full h-2.5">
@@ -566,7 +663,7 @@ export default function App() {
                           </div>
                           <div>
                             <div className="flex justify-between mb-2">
-                              <span className="font-medium text-gray-300">CBD Estimado</span>
+                              <span className="font-medium text-gray-300">{t('cbd_estimated')}</span>
                               <span className="font-bold text-emerald">{result.cbd}%</span>
                             </div>
                             <div className="w-full bg-gray-800 rounded-full h-2.5">
@@ -580,7 +677,7 @@ export default function App() {
                           </div>
                           <div>
                             <div className="flex justify-between mb-2">
-                              <span className="font-medium text-gray-300">Perfil de Terpenos</span>
+                              <span className="font-medium text-gray-300">{t('terpenes_estimated')}</span>
                               <span className="font-bold text-yellow-400">{result.terpenes}%</span>
                             </div>
                             <div className="w-full bg-gray-800 rounded-full h-2.5">
@@ -596,18 +693,18 @@ export default function App() {
 
                         {/* Traits Grid */}
                         <div>
-                          <h4 className="text-sm font-bold text-gray-400 tracking-wider mb-4 uppercase">Rasgos Detectados</h4>
+                          <h4 className="text-sm font-bold text-gray-400 tracking-wider mb-4 uppercase">{t('detected_traits')}</h4>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                              <span className="block text-xs text-gray-500 mb-1">Tricomas</span>
+                              <span className="block text-xs text-gray-500 mb-1">{t('trichomes')}</span>
                               <span className="text-sm font-medium">{result.traits.trichomes}</span>
                             </div>
                             <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                              <span className="block text-xs text-gray-500 mb-1">Textura</span>
+                              <span className="block text-xs text-gray-500 mb-1">{t('texture')}</span>
                               <span className="text-sm font-medium">{result.traits.texture}</span>
                             </div>
                             <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                              <span className="block text-xs text-gray-500 mb-1">Curación</span>
+                              <span className="block text-xs text-gray-500 mb-1">{t('curing')}</span>
                               <span className="text-sm font-medium">{result.traits.curing}</span>
                             </div>
                           </div>
@@ -615,7 +712,7 @@ export default function App() {
 
                         {/* Interpretation */}
                         <div>
-                          <h4 className="text-sm font-bold text-gray-400 tracking-wider mb-3 uppercase">Interpretación</h4>
+                          <h4 className="text-sm font-bold text-gray-400 tracking-wider mb-3 uppercase">{t('interpretation')}</h4>
                           <div className="bg-charcoal/50 p-4 rounded-xl border border-white/10 text-gray-300 text-sm leading-relaxed">
                             {result.interpretation}
                           </div>
@@ -633,7 +730,7 @@ export default function App() {
       {/* Footer */}
       <footer className="p-6 text-center border-t border-white/10 glass-panel mt-auto">
         <p className="text-sm text-gray-500 max-w-3xl mx-auto">
-          <strong className="text-gray-400">Disclaimer:</strong> Este análisis es puramente informativo y basado en inteligencia visual; no sustituye un análisis de laboratorio profesional. Las estimaciones mostradas pueden variar significativamente de los valores reales.
+          {t('disclaimer')}
         </p>
       </footer>
 
@@ -663,15 +760,15 @@ export default function App() {
               
               <div className="grid grid-cols-3 gap-6 mt-4">
                 <div className="bg-black/40 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
-                  <span className="text-gray-400 text-xl font-medium tracking-wider uppercase block mb-2">THC Estimado</span>
+                  <span className="text-gray-400 text-xl font-medium tracking-wider uppercase block mb-2">{t('thc_estimated')}</span>
                   <span className="text-6xl font-black text-neon-green">{result.thc}%</span>
                 </div>
                 <div className="bg-black/40 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
-                  <span className="text-gray-400 text-xl font-medium tracking-wider uppercase block mb-2">CBD Estimado</span>
+                  <span className="text-gray-400 text-xl font-medium tracking-wider uppercase block mb-2">{t('cbd_estimated')}</span>
                   <span className="text-6xl font-black text-emerald">{result.cbd}%</span>
                 </div>
                 <div className="bg-black/40 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
-                  <span className="text-gray-400 text-xl font-medium tracking-wider uppercase block mb-2">Terpenos</span>
+                  <span className="text-gray-400 text-xl font-medium tracking-wider uppercase block mb-2">{t('terpenes_estimated')}</span>
                   <span className="text-6xl font-black text-yellow-400">{result.terpenes}%</span>
                 </div>
               </div>
@@ -696,7 +793,7 @@ export default function App() {
               className="bg-charcoal border border-white/10 p-6 rounded-3xl max-w-md w-full flex flex-col gap-6 shadow-2xl"
             >
               <div className="flex justify-between items-center">
-                <h3 className="text-xl font-bold">Tu Póster de Análisis</h3>
+                <h3 className="text-xl font-bold">{t('poster_title')}</h3>
                 <button onClick={() => setGeneratedImage(null)} className="text-gray-400 hover:text-white transition-colors text-2xl font-light">×</button>
               </div>
 
@@ -706,10 +803,10 @@ export default function App() {
 
               <div className="flex gap-4">
                 <button onClick={handleNativeShare} className="flex-1 px-4 py-3 bg-neon-green text-black font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-emerald transition-colors">
-                  <Share2 className="w-5 h-5" /> Compartir
+                  <Share2 className="w-5 h-5" /> {t('share')}
                 </button>
                 <button onClick={handleDownload} className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
-                  <Download className="w-5 h-5" /> Descargar
+                  <Download className="w-5 h-5" /> {t('download')}
                 </button>
               </div>
             </motion.div>
