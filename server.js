@@ -51,6 +51,10 @@ const responseSchema = {
       type: "string",
       description: "Predominancia basada en el aspecto (Ej: Indica, Sativa, Híbrida)."
     },
+    strain: {
+      type: "string",
+      description: "Identificación de la variedad específica basada en rasgos visuales (colores, pistilos, estructura). Ej: Amnesia Haze, Purple Punch, OG Kush. Si no estás seguro, pon 'Variedad Desconocida'."
+    },
     thc: {
       type: "integer",
       description: "Estimación visual del % de THC basándote en la densidad de tricomas (0-35)."
@@ -81,7 +85,7 @@ const responseSchema = {
       description: "Un párrafo profesional, muy específico y técnico interpretando la muestra. NO te limites a decir 'Es una flor híbrida'. Describe los matices de color, estructura del cogollo o extracción, signos de oxidación en tricomas y lo que eso indica sobre los efectos o el estado de curación."
     }
   },
-  required: ["isCannabis", "type", "predominance", "thc", "cbd", "terpenes", "quality", "traits", "interpretation"]
+  required: ["isCannabis", "type", "predominance", "strain", "thc", "cbd", "terpenes", "quality", "traits", "interpretation"]
 };
 
 app.post('/api/analyze', analyzeLimiter, async (req, res) => {

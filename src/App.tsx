@@ -6,6 +6,7 @@ import { toPng } from 'html-to-image';
 type AnalysisResult = {
   type: string;
   predominance: string;
+  strain: string;
   thc: number;
   cbd: number;
   terpenes: number;
@@ -58,7 +59,7 @@ const translations = {
     error_api_key: "Falta la API Key de Gemini. Por favor, añádela en el archivo .env de la raíz del proyecto.",
     error_cannabis: "Parece ser que nuestro sistema no detecta bien la imagen. Por favor, sube una foto clara de una flor o extracción.",
     disclaimer: "Disclaimer: Este análisis es puramente informativo y basado en inteligencia visual; no sustituye un análisis de laboratorio profesional. Las estimaciones mostradas pueden variar significativamente de los valores reales.",
-    ai_prompt: "Eres un experto catador y botánico especializado en cannabis. Analiza la imagen minuciosamente. Si no es cannabis o un extracto derivado, pon isCannabis en false. Si lo es, ponlo en true y devuelve estimaciones realistas basadas en el aspecto, los tricomas, el color y la textura. RESPONDE TODO EN ESPAÑOL.",
+    ai_prompt: "Eres un experto catador y botánico especializado en cannabis. Analiza la imagen minuciosamente. Si no es cannabis o un extracto derivado, pon isCannabis en false. Si lo es, ponlo en true y devuelve estimaciones realistas basadas en el aspecto, los tricomas, el color y la textura. Es MUY IMPORTANTE que intentes identificar la variedad específica (ej: Amnesia Haze, OG Kush, Moby Dick, Skunk #1, etc) basándote en la forma de los cogollos, el color de los pistilos y la estructura. RESPONDE TODO EN ESPAÑOL.",
     age_title: 'Verificación de Edad',
     age_message: 'Esta aplicación contiene contenido relacionado con el cannabis. Debes ser mayor de 18 años para acceder.',
     age_confirm: 'Soy mayor de 18 años',
@@ -97,7 +98,7 @@ const translations = {
     error_api_key: "Gemini API Key missing. Please add it to the .env file in the project root.",
     error_cannabis: "It seems our system doesn't detect the image well. Please upload a clear photo of a flower or extraction.",
     disclaimer: "Disclaimer: This analysis is purely informative and based on visual intelligence; it does not replace a professional laboratory analysis. Shown estimates may vary significantly from actual values.",
-    ai_prompt: "You are an expert taster and botanist specializing in cannabis. Analyze the image thoroughly. If it's not cannabis or a derivative extract, set isCannabis to false. If it is, set it to true and return realistic estimates based on appearance, trichomes, color, and texture. RESPOND EVERYTHING IN ENGLISH.",
+    ai_prompt: "You are an expert taster and botanist specializing in cannabis. Analyze the image thoroughly. If it's not cannabis or a derivative extract, set isCannabis to false. If it is, set it to true and return realistic estimates based on appearance, trichomes, color, and texture. It is VERY IMPORTANT that you try to identify the specific strain (e.g., Amnesia Haze, OG Kush, Moby Dick, Skunk #1, etc.) based on bud shape, pistil color, and structure. RESPOND EVERYTHING IN ENGLISH.",
     age_title: 'Age Verification',
     age_message: 'This application contains content related to cannabis. You must be over 18 years old to access.',
     age_confirm: 'I am over 18',
@@ -296,6 +297,7 @@ export default function App() {
         const resObj = {
           type: data.type || 'Flor',
           predominance: data.predominance || 'Desconocida',
+          strain: data.strain || 'Variedad Desconocida',
           thc: data.thc || 15,
           cbd: data.cbd || 1,
           terpenes: data.terpenes || 2,
@@ -475,10 +477,10 @@ export default function App() {
                     onClick={() => loadHistoryItem(item)}
                     className="glass-panel p-4 rounded-2xl flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-colors border border-white/5 hover:border-neon-green/30 group"
                   >
-                    <img src={item.thumbnail} alt={item.result.type} className="w-14 h-14 rounded-xl object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
-                    <div>
-                      <p className="font-bold text-sm text-white truncate">{item.result.type}</p>
-                      <p className="text-xs text-gray-400">{new Date(item.date).toLocaleDateString()}</p>
+                    <img src={item.thumbnail} alt={item.result.strain} className="w-14 h-14 rounded-xl object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                    <div className="min-w-0">
+                      <p className="font-bold text-sm text-white truncate">{item.result.strain}</p>
+                      <p className="text-xs text-gray-400">{item.result.type}</p>
                       <p className="text-neon-green text-xs font-bold mt-0.5">THC {item.result.thc}%</p>
                     </div>
                   </div>
@@ -599,7 +601,12 @@ export default function App() {
                       <span className="font-semibold uppercase tracking-wider text-sm">{t('analysis_completed')}</span>
                     </div>
 
-                    <h3 className="text-3xl font-bold mb-4">{result.type} <span className="text-gray-500 font-light">| {result.predominance}</span></h3>
+                    <h3 className="text-4xl font-black mb-1 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent leading-tight">{result.strain}</h3>
+                    <p className="text-xl text-gray-400 font-medium mb-4 flex items-center gap-2">
+                      {result.type} 
+                      <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
+                      <span className="text-gray-500">{result.predominance}</span>
+                    </p>
 
                     {/* Compact Summary Pills */}
                     <div className="flex flex-wrap gap-3 mb-4">
@@ -753,12 +760,12 @@ export default function App() {
             <div className="absolute bottom-0 left-0 w-full p-16 flex flex-col gap-8 z-10">
               <div className="flex justify-between items-end">
                 <div>
-                  <div className="flex items-center gap-3 mb-4">
-                    <Leaf className="w-10 h-10 text-neon-green" />
-                    <span className="text-neon-green font-bold tracking-[0.2em] text-2xl">TRICHAI</span>
-                  </div>
-                  <h1 className="text-7xl font-extrabold text-white mb-3 tracking-tight">{result.type}</h1>
-                  <p className="text-3xl text-gray-300 font-light tracking-wide">{result.predominance}</p>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Leaf className="w-10 h-10 text-neon-green" />
+                      <span className="text-neon-green font-bold tracking-[0.2em] text-2xl">TRICHAI</span>
+                    </div>
+                    <h1 className="text-8xl font-black text-white mb-2 tracking-tighter uppercase">{result.strain}</h1>
+                    <p className="text-4xl text-neon-green/80 font-bold tracking-wide uppercase">{result.type} | {result.predominance}</p>
                 </div>
                 <div className="flex gap-3 bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10">
                   {[...Array(5)].map((_, i) => (
