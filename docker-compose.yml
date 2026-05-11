@@ -10,7 +10,7 @@ services:
         - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
     container_name: trichai-web
     ports:
-      - "8080:80"
+      - "5173:80"
     restart: unless-stopped
     env_file:
       - .env
