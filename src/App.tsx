@@ -58,7 +58,12 @@ const translations = {
     error_api_key: "Falta la API Key de Gemini. Por favor, añádela en el archivo .env de la raíz del proyecto.",
     error_cannabis: "Parece ser que nuestro sistema no detecta bien la imagen. Por favor, sube una foto clara de una flor o extracción.",
     disclaimer: "Disclaimer: Este análisis es puramente informativo y basado en inteligencia visual; no sustituye un análisis de laboratorio profesional. Las estimaciones mostradas pueden variar significativamente de los valores reales.",
-    ai_prompt: "Eres un experto catador y botánico especializado en cannabis. Analiza la imagen minuciosamente. Si no es cannabis o un extracto derivado, pon isCannabis en false. Si lo es, ponlo en true y devuelve estimaciones realistas basadas en el aspecto, los tricomas, el color y la textura. RESPONDE TODO EN ESPAÑOL."
+    ai_prompt: "Eres un experto catador y botánico especializado en cannabis. Analiza la imagen minuciosamente. Si no es cannabis o un extracto derivado, pon isCannabis en false. Si lo es, ponlo en true y devuelve estimaciones realistas basadas en el aspecto, los tricomas, el color y la textura. RESPONDE TODO EN ESPAÑOL.",
+    age_title: 'Verificación de Edad',
+    age_message: 'Esta aplicación contiene contenido relacionado con el cannabis. Debes ser mayor de 18 años para acceder.',
+    age_confirm: 'Soy mayor de 18 años',
+    age_deny: 'Salir',
+    age_warning: 'Al entrar, aceptas el uso de almacenamiento local para mejorar tu experiencia.'
   },
   en: {
     hero_title: "Intelligent Cannabis Derivative Analyzer",
