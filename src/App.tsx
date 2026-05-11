@@ -759,7 +759,7 @@ export default function App() {
             
             <div className="absolute bottom-0 left-0 w-full p-16 flex flex-col gap-8 z-10">
               <div className="flex justify-between items-end">
-                <div>
+                <div className="flex-1 min-w-0 pr-6">
                     <div className="flex items-center gap-3 mb-4">
                       <Leaf className="w-10 h-10 text-neon-green" />
                       <span className="text-neon-green font-bold tracking-[0.2em] text-2xl">TRICHAI</span>
@@ -767,17 +767,17 @@ export default function App() {
                     <h1 
                       className="font-black text-white mb-2 tracking-tighter uppercase whitespace-nowrap overflow-hidden"
                       style={{ 
-                        fontSize: result.strain.length > 12 
-                          ? `${Math.max(40, Math.min(128, 900 / (result.strain.length * 0.6)))}px` 
+                        fontSize: result.strain.length > 9 
+                          ? `${Math.max(30, Math.min(128, 600 / (result.strain.length * 0.6)))}px` 
                           : '128px',
                         lineHeight: '1'
                       }}
                     >
                       {result.strain}
                     </h1>
-                    <p className="text-4xl text-neon-green/80 font-bold tracking-wide uppercase">{result.type} | {result.predominance}</p>
+                    <p className="text-4xl text-neon-green/80 font-bold tracking-wide uppercase truncate">{result.type} | {result.predominance}</p>
                 </div>
-                <div className="flex gap-3 bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10">
+                <div className="flex-shrink-0 flex gap-3 bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className={`w-10 h-10 ${i < result.quality ? 'text-neon-green fill-neon-green' : 'text-gray-600'}`} />
                   ))}
