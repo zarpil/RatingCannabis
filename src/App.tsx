@@ -92,7 +92,12 @@ const translations = {
     error_api_key: "Gemini API Key missing. Please add it to the .env file in the project root.",
     error_cannabis: "It seems our system doesn't detect the image well. Please upload a clear photo of a flower or extraction.",
     disclaimer: "Disclaimer: This analysis is purely informative and based on visual intelligence; it does not replace a professional laboratory analysis. Shown estimates may vary significantly from actual values.",
-    ai_prompt: "You are an expert taster and botanist specializing in cannabis. Analyze the image thoroughly. If it's not cannabis or a derivative extract, set isCannabis to false. If it is, set it to true and return realistic estimates based on appearance, trichomes, color, and texture. RESPOND EVERYTHING IN ENGLISH."
+    ai_prompt: "You are an expert taster and botanist specializing in cannabis. Analyze the image thoroughly. If it's not cannabis or a derivative extract, set isCannabis to false. If it is, set it to true and return realistic estimates based on appearance, trichomes, color, and texture. RESPOND EVERYTHING IN ENGLISH.",
+    age_title: 'Age Verification',
+    age_message: 'This application contains content related to cannabis. You must be over 18 years old to access.',
+    age_confirm: 'I am over 18',
+    age_deny: 'Exit',
+    age_warning: 'By entering, you accept our use of local storage to improve your experience.'
   }
 };
 
@@ -107,11 +112,20 @@ export default function App() {
     return (saved as 'es' | 'en') || 'es';
   });
 
+  const [hasAcceptedAge, setHasAcceptedAge] = useState(() => {
+    return localStorage.getItem('trichai_age_accepted') === 'true';
+  });
+
   const t = (key: keyof typeof translations.es) => translations[lang][key];
 
   const changeLang = (l: 'es' | 'en') => {
     setLang(l);
     localStorage.setItem('trichai_lang', l);
+  };
+
+  const acceptAge = () => {
+    setHasAcceptedAge(true);
+    localStorage.setItem('trichai_age_accepted', 'true');
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -307,6 +321,57 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-deep-black text-white flex flex-col font-sans selection:bg-neon-green selection:text-black">
+      {/* Age Verification Overlay */}
+      <AnimatePresence>
+        {!hasAcceptedAge && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-6"
+          >
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" />
+            
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              className="relative w-full max-w-lg glass-panel p-8 md:p-12 rounded-[2.5rem] text-center border border-white/10 shadow-2xl"
+            >
+              <div className="w-20 h-20 bg-neon-green/20 rounded-3xl flex items-center justify-center mx-auto mb-8 rotate-3 shadow-[0_0_30px_rgba(57,255,20,0.1)]">
+                <Leaf className="w-10 h-10 text-neon-green" />
+              </div>
+              
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                {t('age_title')}
+              </h2>
+              
+              <p className="text-gray-400 text-lg mb-8 leading-relaxed">
+                {t('age_message')}
+              </p>
+              
+              <div className="flex flex-col gap-4">
+                <button
+                  onClick={acceptAge}
+                  className="w-full py-4 bg-neon-green text-black font-bold rounded-2xl text-xl transition-all hover:scale-[1.02] active:scale-95 shadow-[0_10px_20px_rgba(57,255,20,0.2)]"
+                >
+                  {t('age_confirm')}
+                </button>
+                <button
+                  onClick={() => window.location.href = "https://google.com"}
+                  className="w-full py-4 bg-white/5 hover:bg-white/10 text-gray-400 font-medium rounded-2xl transition-all"
+                >
+                  {t('age_deny')}
+                </button>
+              </div>
+              
+              <p className="mt-8 text-xs text-gray-600 uppercase tracking-widest">
+                {t('age_warning')}
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <header className="p-6 flex justify-between items-center border-b border-white/10 glass-panel sticky top-0 z-50">
         <div className="flex items-center gap-2">
