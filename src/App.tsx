@@ -254,83 +254,23 @@ export default function App() {
     setError(null);
     setResult(null);
 
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey || apiKey === 'pon_aqui_tu_api_key_de_gemini') {
-      setError(t('error_api_key'));
-      setIsAnalyzing(false);
-      return;
-    }
-
     try {
-      const ai = new GoogleGenAI({ apiKey });
-
-      const base64Data = image.split(',')[1];
-      const mimeType = image.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)?.[1] || 'image/jpeg';
-
-      const responseSchema = {
-        type: Type.OBJECT,
-        properties: {
-          isCannabis: {
-            type: Type.BOOLEAN,
-            description: "True solo si la imagen contiene clara e inequívocamente cannabis o un derivado (flor, rosin, hachís, extracto)."
-          },
-          type: {
-            type: Type.STRING,
-            description: "Tipo de producto (Ej: Flor, Dry Sift, Ice-o-Lator, Rosin, BHO)."
-          },
-          predominance: {
-            type: Type.STRING,
-            description: "Predominancia basada en el aspecto (Ej: Indica, Sativa, Híbrida)."
-          },
-          thc: {
-            type: Type.INTEGER,
-            description: "Estimación visual del % de THC basándote en la densidad de tricomas (0-35)."
-          },
-          cbd: {
-            type: Type.INTEGER,
-            description: "Estimación visual del % de CBD (0-15)."
-          },
-          terpenes: {
-            type: Type.INTEGER,
-            description: "Estimación visual del % de terpenos (1-10)."
-          },
-          quality: {
-            type: Type.INTEGER,
-            description: "Calidad visual general del 1 al 5 estrellas."
-          },
-          traits: {
-            type: Type.OBJECT,
-            properties: {
-              trichomes: { type: Type.STRING, description: "Descripción detallada de la densidad de tricomas. Ej: Alta · 39.2% cobertura" },
-              texture: { type: Type.STRING, description: "Descripción de textura y densidad física. Ej: Cristalina · rugosidad 54/100" },
-              curing: { type: Type.STRING, description: "Estado aparente de curación/humedad. Ej: Fresca · brillo 56%" }
-            },
-            required: ["trichomes", "texture", "curing"]
-          },
-          interpretation: {
-            type: Type.STRING,
-            description: "Un párrafo profesional, muy específico y técnico interpretando la muestra. NO te limites a decir 'Es una flor híbrida'. Describe los matices de color, estructura del cogollo o extracción, signos de oxidación en tricomas y lo que eso indica sobre los efectos o el estado de curación."
-          }
-        },
-        required: ["isCannabis", "type", "predominance", "thc", "cbd", "terpenes", "quality", "traits", "interpretation"]
-      };
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [
-          t('ai_prompt'),
-          { inlineData: { data: base64Data, mimeType } }
-        ],
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: responseSchema,
-        }
+      // Llamada al backend proxy en lugar de llamar a Google directamente
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image,
+          prompt: t('ai_prompt')
+        })
       });
 
-      const textResponse = response.text;
-      if (!textResponse) throw new Error("Respuesta vacía de la API");
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Error en el servidor de análisis');
+      }
 
-      const data = JSON.parse(textResponse);
+      const data = await response.json();
 
       if (!data.isCannabis) {
         setError(t('error_cannabis'));
@@ -354,7 +294,7 @@ export default function App() {
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Error al comunicarse con Gemini. Revisa la consola.');
+      setError(err.message || 'Error al comunicarse con el servidor. Revisa la consola.');
     } finally {
       setIsAnalyzing(false);
     }
