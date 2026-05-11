@@ -764,7 +764,17 @@ export default function App() {
                       <Leaf className="w-10 h-10 text-neon-green" />
                       <span className="text-neon-green font-bold tracking-[0.2em] text-2xl">TRICHAI</span>
                     </div>
-                    <h1 className="text-8xl font-black text-white mb-2 tracking-tighter uppercase">{result.strain}</h1>
+                    <h1 
+                      className="font-black text-white mb-2 tracking-tighter uppercase whitespace-nowrap overflow-hidden"
+                      style={{ 
+                        fontSize: result.strain.length > 12 
+                          ? `${Math.max(40, Math.min(128, 900 / (result.strain.length * 0.6)))}px` 
+                          : '128px',
+                        lineHeight: '1'
+                      }}
+                    >
+                      {result.strain}
+                    </h1>
                     <p className="text-4xl text-neon-green/80 font-bold tracking-wide uppercase">{result.type} | {result.predominance}</p>
                 </div>
                 <div className="flex gap-3 bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10">
