@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Camera, AlertCircle, Leaf, CheckCircle2, Star, RefreshCw } from 'lucide-react';
+import { Upload, Camera, AlertCircle, Leaf, CheckCircle2, Star, RefreshCw, Share2, Download, ChevronDown } from 'lucide-react';
 import { GoogleGenAI, Type } from '@google/genai';
+import { toPng } from 'html-to-image';
 
 type AnalysisResult = {
   type: string;
@@ -10,6 +11,12 @@ type AnalysisResult = {
   cbd: number;
   terpenes: number;
   quality: number; // 1 to 5
+  traits: {
+    trichomes: string;
+    texture: string;
+    curing: string;
+  };
+  interpretation: string;
 } | null;
 
 export default function App() {
@@ -20,6 +27,49 @@ export default function App() {
   const [result, setResult] = useState<AnalysisResult>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const posterRef = useRef<HTMLDivElement>(null);
+  const [isSharing, setIsSharing] = useState(false);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+
+  const generatePreview = async () => {
+    if (!posterRef.current) return;
+    setIsSharing(true);
+    try {
+      const imageData = await toPng(posterRef.current, {
+        backgroundColor: '#0A0A0A',
+        pixelRatio: 1, // 1080x1080 is large enough
+      });
+      setGeneratedImage(imageData);
+    } catch (err) {
+      console.error('Error generando imagen:', err);
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleNativeShare = async () => {
+    if (!generatedImage || !navigator.share) return;
+    try {
+      const blob = await (await fetch(generatedImage)).blob();
+      const file = new File([blob], 'trichai_analysis.png', { type: 'image/png' });
+      await navigator.share({
+        title: 'Mi análisis en TrichAi 🌱',
+        text: 'Mira los resultados de mi análisis en TrichAi.',
+        files: [file],
+      });
+    } catch (e) {
+      console.log("Error al compartir nativo", e);
+    }
+  };
+
+  const handleDownload = () => {
+    if (!generatedImage) return;
+    const link = document.createElement('a');
+    link.href = generatedImage;
+    link.download = 'trichai_analysis.png';
+    link.click();
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -113,9 +163,22 @@ export default function App() {
           quality: {
             type: Type.INTEGER,
             description: "Calidad visual general del 1 al 5 estrellas."
+          },
+          traits: {
+            type: Type.OBJECT,
+            properties: {
+              trichomes: { type: Type.STRING, description: "Descripción detallada de la densidad de tricomas. Ej: Alta · 39.2% cobertura" },
+              texture: { type: Type.STRING, description: "Descripción de textura y densidad física. Ej: Cristalina · rugosidad 54/100" },
+              curing: { type: Type.STRING, description: "Estado aparente de curación/humedad. Ej: Fresca · brillo 56%" }
+            },
+            required: ["trichomes", "texture", "curing"]
+          },
+          interpretation: {
+            type: Type.STRING,
+            description: "Un párrafo profesional, muy específico y técnico interpretando la muestra. NO te limites a decir 'Es una flor híbrida'. Describe los matices de color, estructura del cogollo o extracción, signos de oxidación en tricomas y lo que eso indica sobre los efectos o el estado de curación."
           }
         },
-        required: ["isCannabis"]
+        required: ["isCannabis", "type", "predominance", "thc", "cbd", "terpenes", "quality", "traits", "interpretation"]
       };
 
       const response = await ai.models.generateContent({
@@ -140,11 +203,17 @@ export default function App() {
       } else {
         setResult({
           type: data.type || 'Flor',
-          predominance: data.predominance || 'Híbrida',
+          predominance: data.predominance || 'Desconocida',
           thc: data.thc || 15,
           cbd: data.cbd || 1,
           terpenes: data.terpenes || 2,
           quality: data.quality || 3,
+          traits: {
+            trichomes: data.traits?.trichomes || 'Media · 20% cobertura',
+            texture: data.traits?.texture || 'Estándar · rugosidad 50/100',
+            curing: data.traits?.curing || 'Óptima · brillo 40%',
+          },
+          interpretation: data.interpretation || 'La muestra presenta características estándar sin rasgos destacables a simple vista.',
         });
       }
     } catch (err: any) {
@@ -282,92 +351,172 @@ export default function App() {
               key="result"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="w-full max-w-3xl glass-panel rounded-3xl p-8 overflow-hidden relative"
+              className="w-full max-w-3xl flex flex-col gap-6"
             >
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-neon-green to-emerald"></div>
+              <div className="glass-panel rounded-3xl p-8 overflow-hidden relative">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-neon-green to-emerald"></div>
 
-              <div className="flex flex-col md:flex-row gap-8">
-                <div className="w-full md:w-1/3">
-                  <img src={image!} alt="Analyzed Sample" className="w-full aspect-square object-cover rounded-2xl shadow-lg border border-white/10" />
+                <div className="flex flex-col md:flex-row gap-8">
+                  <div className="w-full md:w-1/3 flex flex-col gap-4">
+                    <img src={image!} alt="Analyzed Sample" className="w-full aspect-square object-cover rounded-2xl shadow-lg border border-white/10" />
 
-                  <button
-                    onClick={resetAnalysis}
-                    className="w-full mt-6 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    Nueva Muestra
-                  </button>
-                </div>
+                    <div className="flex flex-col gap-3 mt-2" data-html2canvas-ignore="true">
+                      <button
+                        onClick={generatePreview}
+                        disabled={isSharing}
+                        className="w-full px-6 py-3 bg-neon-green text-black hover:bg-emerald rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(57,255,20,0.2)] flex items-center justify-center gap-2"
+                      >
+                        {isSharing ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Share2 className="w-5 h-5" />}
+                        {isSharing ? 'Generando...' : 'Compartir'}
+                      </button>
 
-                <div className="w-full md:w-2/3 flex flex-col justify-center">
-                  <div className="flex items-center gap-2 mb-2 text-neon-green">
-                    <CheckCircle2 className="w-5 h-5" />
-                    <span className="font-semibold uppercase tracking-wider text-sm">Análisis Completado</span>
+                      <button
+                        onClick={resetAnalysis}
+                        className="w-full px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Nueva Muestra
+                      </button>
+                    </div>
                   </div>
 
-                  <h3 className="text-3xl font-bold mb-6">{result.type} <span className="text-gray-500 font-light">| {result.predominance}</span></h3>
+                  <div className="w-full md:w-2/3 flex flex-col justify-center">
+                    <div className="flex items-center gap-2 mb-2 text-neon-green">
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span className="font-semibold uppercase tracking-wider text-sm">Análisis Completado</span>
+                    </div>
 
-                  <div className="space-y-6">
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <span className="font-medium text-gray-300">THC Estimado</span>
+                    <h3 className="text-3xl font-bold mb-4">{result.type} <span className="text-gray-500 font-light">| {result.predominance}</span></h3>
+
+                    {/* Compact Summary Pills */}
+                    <div className="flex flex-wrap gap-3 mb-4">
+                      <div className="bg-neon-green/10 border border-neon-green/20 px-4 py-2 rounded-full">
+                        <span className="text-xs text-gray-400 mr-1">THC</span>
                         <span className="font-bold text-neon-green">{result.thc}%</span>
                       </div>
-                      <div className="w-full bg-gray-800 rounded-full h-2.5">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${(result.thc / 35) * 100}%` }}
-                          transition={{ duration: 1, delay: 0.2 }}
-                          className="bg-neon-green h-2.5 rounded-full"
-                        ></motion.div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <span className="font-medium text-gray-300">CBD Estimado</span>
+                      <div className="bg-emerald/10 border border-emerald/20 px-4 py-2 rounded-full">
+                        <span className="text-xs text-gray-400 mr-1">CBD</span>
                         <span className="font-bold text-emerald">{result.cbd}%</span>
                       </div>
-                      <div className="w-full bg-gray-800 rounded-full h-2.5">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${(result.cbd / 15) * 100}%` }}
-                          transition={{ duration: 1, delay: 0.4 }}
-                          className="bg-emerald h-2.5 rounded-full"
-                        ></motion.div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <span className="font-medium text-gray-300">Perfil de Terpenos</span>
+                      <div className="bg-yellow-400/10 border border-yellow-400/20 px-4 py-2 rounded-full">
+                        <span className="text-xs text-gray-400 mr-1">Terpenos</span>
                         <span className="font-bold text-yellow-400">{result.terpenes}%</span>
                       </div>
-                      <div className="w-full bg-gray-800 rounded-full h-2.5">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${(result.terpenes / 10) * 100}%` }}
-                          transition={{ duration: 1, delay: 0.6 }}
-                          className="bg-yellow-400 h-2.5 rounded-full"
-                        ></motion.div>
-                      </div>
                     </div>
-                  </div>
 
-                  <div className="mt-8 pt-6 border-t border-white/10">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-400 font-medium">Calidad Visual</span>
+                    {/* Quality Stars */}
+                    <div className="flex items-center gap-2 mb-4">
                       <div className="flex gap-1">
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
-                            className={`w-6 h-6 ${i < result.quality ? 'text-neon-green fill-neon-green' : 'text-gray-700'}`}
+                            className={`w-5 h-5 ${i < result.quality ? 'text-neon-green fill-neon-green' : 'text-gray-700'}`}
                           />
                         ))}
                       </div>
+                      <span className="text-sm text-gray-500">Calidad Visual</span>
                     </div>
+
+                    {/* Expand Button */}
+                    <button
+                      onClick={() => setShowDetails(!showDetails)}
+                      className="flex items-center gap-2 text-neon-green/80 hover:text-neon-green transition-colors text-sm font-medium mt-2 group"
+                    >
+                      <span>{showDetails ? 'Ocultar detalles' : 'Ver análisis completo'}</span>
+                      <motion.div animate={{ rotate: showDetails ? 180 : 0 }} transition={{ duration: 0.3 }}>
+                        <ChevronDown className="w-4 h-4" />
+                      </motion.div>
+                    </button>
                   </div>
                 </div>
+
+                {/* Expandable Detail Section */}
+                <AnimatePresence>
+                  {showDetails && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.4, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-6 pt-6 border-t border-white/10 space-y-6">
+                        {/* Progress Bars */}
+                        <div className="space-y-5">
+                          <div>
+                            <div className="flex justify-between mb-2">
+                              <span className="font-medium text-gray-300">THC Estimado</span>
+                              <span className="font-bold text-neon-green">{result.thc}%</span>
+                            </div>
+                            <div className="w-full bg-gray-800 rounded-full h-2.5">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${(result.thc / 35) * 100}%` }}
+                                transition={{ duration: 1, delay: 0.1 }}
+                                className="bg-neon-green h-2.5 rounded-full"
+                              ></motion.div>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex justify-between mb-2">
+                              <span className="font-medium text-gray-300">CBD Estimado</span>
+                              <span className="font-bold text-emerald">{result.cbd}%</span>
+                            </div>
+                            <div className="w-full bg-gray-800 rounded-full h-2.5">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${(result.cbd / 15) * 100}%` }}
+                                transition={{ duration: 1, delay: 0.2 }}
+                                className="bg-emerald h-2.5 rounded-full"
+                              ></motion.div>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex justify-between mb-2">
+                              <span className="font-medium text-gray-300">Perfil de Terpenos</span>
+                              <span className="font-bold text-yellow-400">{result.terpenes}%</span>
+                            </div>
+                            <div className="w-full bg-gray-800 rounded-full h-2.5">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${(result.terpenes / 10) * 100}%` }}
+                                transition={{ duration: 1, delay: 0.3 }}
+                                className="bg-yellow-400 h-2.5 rounded-full"
+                              ></motion.div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Traits Grid */}
+                        <div>
+                          <h4 className="text-sm font-bold text-gray-400 tracking-wider mb-4 uppercase">Rasgos Detectados</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                              <span className="block text-xs text-gray-500 mb-1">Tricomas</span>
+                              <span className="text-sm font-medium">{result.traits.trichomes}</span>
+                            </div>
+                            <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                              <span className="block text-xs text-gray-500 mb-1">Textura</span>
+                              <span className="text-sm font-medium">{result.traits.texture}</span>
+                            </div>
+                            <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                              <span className="block text-xs text-gray-500 mb-1">Curación</span>
+                              <span className="text-sm font-medium">{result.traits.curing}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Interpretation */}
+                        <div>
+                          <h4 className="text-sm font-bold text-gray-400 tracking-wider mb-3 uppercase">Interpretación</h4>
+                          <div className="bg-charcoal/50 p-4 rounded-xl border border-white/10 text-gray-300 text-sm leading-relaxed">
+                            {result.interpretation}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.div>
           )}
@@ -380,6 +529,86 @@ export default function App() {
           <strong className="text-gray-400">Disclaimer:</strong> Este análisis es puramente informativo y basado en inteligencia visual; no sustituye un análisis de laboratorio profesional. Las estimaciones mostradas pueden variar significativamente de los valores reales.
         </p>
       </footer>
+
+      {/* Hidden Poster for Sharing */}
+      {result && image && (
+        <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+          <div ref={posterRef} className="w-[1080px] h-[1080px] relative bg-[#0A0A0A] flex overflow-hidden font-sans">
+            <img src={image} className="absolute inset-0 w-full h-full object-cover" crossOrigin="anonymous" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+            
+            <div className="absolute bottom-0 left-0 w-full p-16 flex flex-col gap-8 z-10">
+              <div className="flex justify-between items-end">
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <Leaf className="w-10 h-10 text-neon-green" />
+                    <span className="text-neon-green font-bold tracking-[0.2em] text-2xl">TRICHAI</span>
+                  </div>
+                  <h1 className="text-7xl font-extrabold text-white mb-3 tracking-tight">{result.type}</h1>
+                  <p className="text-3xl text-gray-300 font-light tracking-wide">{result.predominance}</p>
+                </div>
+                <div className="flex gap-3 bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className={`w-10 h-10 ${i < result.quality ? 'text-neon-green fill-neon-green' : 'text-gray-600'}`} />
+                  ))}
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-6 mt-4">
+                <div className="bg-black/40 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
+                  <span className="text-gray-400 text-xl font-medium tracking-wider uppercase block mb-2">THC Estimado</span>
+                  <span className="text-6xl font-black text-neon-green">{result.thc}%</span>
+                </div>
+                <div className="bg-black/40 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
+                  <span className="text-gray-400 text-xl font-medium tracking-wider uppercase block mb-2">CBD Estimado</span>
+                  <span className="text-6xl font-black text-emerald">{result.cbd}%</span>
+                </div>
+                <div className="bg-black/40 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
+                  <span className="text-gray-400 text-xl font-medium tracking-wider uppercase block mb-2">Terpenos</span>
+                  <span className="text-6xl font-black text-yellow-400">{result.terpenes}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Preview Modal */}
+      <AnimatePresence>
+        {generatedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-charcoal border border-white/10 p-6 rounded-3xl max-w-md w-full flex flex-col gap-6 shadow-2xl"
+            >
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-bold">Tu Póster de Análisis</h3>
+                <button onClick={() => setGeneratedImage(null)} className="text-gray-400 hover:text-white transition-colors text-2xl font-light">×</button>
+              </div>
+
+              <div className="rounded-2xl overflow-hidden shadow-lg border border-white/5">
+                <img src={generatedImage} alt="Poster Preview" className="w-full aspect-square object-contain bg-black" />
+              </div>
+
+              <div className="flex gap-4">
+                <button onClick={handleNativeShare} className="flex-1 px-4 py-3 bg-neon-green text-black font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-emerald transition-colors">
+                  <Share2 className="w-5 h-5" /> Compartir
+                </button>
+                <button onClick={handleDownload} className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
+                  <Download className="w-5 h-5" /> Descargar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
