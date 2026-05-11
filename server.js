@@ -4,6 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
 
 dotenv.config();
 
@@ -11,8 +12,21 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// Necesario para obtener la IP real del usuario detrás de Cloudflare
+app.set('trust proxy', 1);
+
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+
+// Límite de peticiones para proteger la cuota de la IA
+const analyzeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // Límite de 5 peticiones por IP cada 15 minutos
+  message: { error: 'Too many requests, please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // La API Key se lee del entorno (Docker / .env) y nunca llega al navegador
 const apiKey = process.env.VITE_GEMINI_API_KEY;
@@ -70,7 +84,7 @@ const responseSchema = {
   required: ["isCannabis", "type", "predominance", "thc", "cbd", "terpenes", "quality", "traits", "interpretation"]
 };
 
-app.post('/api/analyze', async (req, res) => {
+app.post('/api/analyze', analyzeLimiter, async (req, res) => {
   try {
     const { image, prompt } = req.body;
     if (!image) return res.status(400).json({ error: 'No image provided' });
