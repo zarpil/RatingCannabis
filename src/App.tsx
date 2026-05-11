@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Camera, AlertCircle, Leaf, CheckCircle2, Star, RefreshCw, Share2, Download, ChevronDown, History } from 'lucide-react';
-import { GoogleGenAI, Type } from '@google/genai';
 import { toPng } from 'html-to-image';
 
 type AnalysisResult = {
