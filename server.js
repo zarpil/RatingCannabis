@@ -16,7 +16,11 @@ app.use(express.json({ limit: '10mb' }));
 
 // La API Key se lee del entorno (Docker / .env) y nunca llega al navegador
 const apiKey = process.env.VITE_GEMINI_API_KEY;
-const genAI = new GoogleGenAI(apiKey);
+if (!apiKey) {
+  console.error('❌ ERROR: VITE_GEMINI_API_KEY no está configurada en el servidor.');
+}
+
+const ai = new GoogleGenAI({ apiKey });
 
 const responseSchema = {
   type: "object",
@@ -70,25 +74,25 @@ app.post('/api/analyze', async (req, res) => {
   try {
     const { image, prompt } = req.body;
     if (!image) return res.status(400).json({ error: 'No image provided' });
+    if (!apiKey) return res.status(500).json({ error: 'API Key not configured on server' });
 
-    const model = genAI.getGenerativeModel({ 
+    const base64Data = image.split(',')[1];
+    const mimeType = image.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)?.[1] || 'image/jpeg';
+
+    // Nueva sintaxis del SDK @google/genai
+    const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      generationConfig: {
+      contents: [
+        prompt,
+        { inlineData: { data: base64Data, mimeType } }
+      ],
+      config: {
         responseMimeType: "application/json",
         responseSchema: responseSchema
       }
     });
 
-    const base64Data = image.split(',')[1];
-    const mimeType = image.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)?.[1] || 'image/jpeg';
-
-    const result = await model.generateContent([
-      prompt,
-      { inlineData: { data: base64Data, mimeType } }
-    ]);
-
-    const response = await result.response;
-    res.json(JSON.parse(response.text()));
+    res.json(JSON.parse(response.text));
   } catch (error) {
     console.error('Error en el análisis:', error);
     res.status(500).json({ error: error.message || 'Internal Server Error' });
