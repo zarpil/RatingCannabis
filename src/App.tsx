@@ -135,6 +135,7 @@ export default function App() {
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const posterRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -441,7 +442,7 @@ export default function App() {
                       {t('browse_files')}
                     </button>
                     <button
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => cameraInputRef.current?.click()}
                       className="px-6 py-3 bg-neon-green text-black hover:bg-emerald rounded-full font-bold transition-colors flex items-center gap-2 shadow-[0_0_20px_rgba(57,255,20,0.3)] hover:shadow-[0_0_30px_rgba(57,255,20,0.5)]"
                     >
                       <Camera className="w-5 h-5" />
@@ -453,6 +454,14 @@ export default function App() {
                     ref={fileInputRef}
                     className="hidden"
                     accept="image/jpeg, image/png, image/webp"
+                    onChange={handleFileChange}
+                  />
+                  <input
+                    type="file"
+                    ref={cameraInputRef}
+                    className="hidden"
+                    accept="image/jpeg, image/png, image/webp"
+                    capture="environment"
                     onChange={handleFileChange}
                   />
                 </div>
