@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://trichai.app/sitemap.xml

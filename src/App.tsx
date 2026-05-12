@@ -275,6 +275,9 @@ export default function App() {
     setResult(null);
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
       // Llamada al backend proxy en lugar de llamar a Google directamente
       const response = await fetch('/api/analyze', {
         method: 'POST',
@@ -282,8 +285,11 @@ export default function App() {
         body: JSON.stringify({
           image,
           prompt: t('ai_prompt')
-        })
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errData = await response.json();
@@ -315,7 +321,11 @@ export default function App() {
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Error al comunicarse con el servidor. Revisa la consola.');
+      if (err.name === 'AbortError') {
+        setError('El análisis ha tardado demasiado y ha sido cancelado (timeout 60s). Por favor, intenta subir una imagen con menos resolución o vuelve a intentarlo.');
+      } else {
+        setError(err.message || 'Error al comunicarse con el servidor. Revisa la consola.');
+      }
     } finally {
       setIsAnalyzing(false);
     }
